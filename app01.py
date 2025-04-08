@@ -1,6 +1,4 @@
 import streamlit as st
-import matplotlib.pyplot as plt
-import numpy as np
 import qrcode
 from PIL import Image
 from io import BytesIO
@@ -59,6 +57,42 @@ st.markdown("""
         border-left: 5px solid #9E9E9E;
         margin: 1rem 0;
     }
+    .bmi-scale {
+        display: flex;
+        width: 100%;
+        height: 40px;
+        border-radius: 5px;
+        overflow: hidden;
+        margin: 20px 0;
+    }
+    .bmi-underweight {
+        background-color: #90CAF9;
+        width: 25%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .bmi-normal {
+        background-color: #A5D6A7;
+        width: 25%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .bmi-overweight {
+        background-color: #FFCC80;
+        width: 25%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .bmi-obese {
+        background-color: #EF9A9A;
+        width: 25%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -67,7 +101,6 @@ st.markdown('<h1 class="main-header">🧮 เครื่องมือคำ�
 
 # เมนู sidebar
 with st.sidebar:
-    st.image("https://via.placeholder.com/150x150.png?text=BMI", width=150)
     st.title("เกี่ยวกับ BMI")
     st.markdown("""
     **BMI (Body Mass Index)** คือดัชนีที่ใช้วัดสัดส่วนรูปร่างของร่างกาย 
@@ -140,31 +173,23 @@ if st.button("คำนวณ BMI"):
         # แสดงผลลัพธ์
         st.markdown(f'<div class="result-box"><h3>ผลลัพธ์</h3>BMI ของคุณคือ <span style="font-size:1.5rem; font-weight:bold; color:{สี}">{bmi:.2f}</span><br>การประเมิน: <span style="font-size:1.2rem; font-weight:bold; color:{สี}">{ผลประเมิน}</span><br><br>{คำแนะนำ}</div>', unsafe_allow_html=True)
         
-        # สร้างแผนภูมิ BMI
-        fig, ax = plt.subplots(figsize=(10, 2))
-        plt.xlim(10, 40)
-        plt.ylim(0, 1)
+        # แสดงแถบสเกล BMI แบบ HTML/CSS แทนการใช้ matplotlib
+        st.markdown("""
+        <div class="bmi-scale">
+            <div class="bmi-underweight">น้ำหนักน้อย<br>&lt;18.5</div>
+            <div class="bmi-normal">ปกติ<br>18.5-24.9</div>
+            <div class="bmi-overweight">น้ำหนักเกิน<br>25-29.9</div>
+            <div class="bmi-obese">อ้วน<br>&gt;30</div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # สร้างช่วง BMI
-        ax.axvspan(10, 18.5, alpha=0.2, color='blue')
-        ax.axvspan(18.5, 25, alpha=0.2, color='green')
-        ax.axvspan(25, 30, alpha=0.2, color='orange')
-        ax.axvspan(30, 40, alpha=0.2, color='red')
-        
-        # เพิ่มตำแหน่งปัจจุบัน
-        plt.plot(bmi, 0.5, 'ro', markersize=12)
-        
-        # เพิ่มป้ายกำกับ
-        plt.text(14.25, 0.5, 'น้ำหนักน้อย', ha='center')
-        plt.text(21.75, 0.5, 'ปกติ', ha='center')
-        plt.text(27.5, 0.5, 'น้ำหนักเกิน', ha='center')
-        plt.text(35, 0.5, 'อ้วน', ha='center')
-        
-        plt.title('แผนภูมิดัชนีมวลกาย (BMI)')
-        plt.tick_params(axis='y', which='both', left=False, labelleft=False)
-        plt.tight_layout()
-        
-        st.pyplot(fig)
+        # แสดงตำแหน่ง BMI ของผู้ใช้บนสเกล
+        bmi_position = min(max((bmi - 10) / 30 * 100, 0), 100)  # แปลง BMI เป็นเปอร์เซ็นต์ของสเกล (10-40)
+        st.markdown(f"""
+        <div style="width:100%; padding:5px 0;">
+            <div style="width:5px; height:20px; background-color:red; position:relative; left:{bmi_position}%;"></div>
+        </div>
+        """, unsafe_allow_html=True)
         
         # คำนวณน้ำหนักที่เหมาะสม
         ส่วนสูง_เมตร = ส่วนสูง / 100
@@ -189,3 +214,4 @@ if st.button("คำนวณ BMI"):
             st.image(qr_image, width=200)
 
 # ส่วนท้ายของแอป
+st.markdown('<div class="footer">© 2025 BMI Calculator App. All rights reserved.</div>', unsafe_allow_html=True)
