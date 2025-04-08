@@ -1,151 +1,163 @@
+# app.py
 import streamlit as st
 import qrcode
-from PIL import Image
 from io import BytesIO
+import base64
+import socket
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
 
-# ตั้งค่าหน้าเว็บ
+# ตั้งค่าหน้าเพจ
 st.set_page_config(
-    page_title="เครื่องมือคำนวณ BMI",
-    page_icon="🧮",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="เครื่องคำนวณ BMI",
+    page_icon="🏋️",
+    layout="centered"
 )
 
-# CSS สำหรับตกแต่งหน้าเว็บ
-st.markdown("""
-<style>
-    .main-header {
-        font-size: 2.5rem;
-        color: #1E88E5;
-        text-align: center;
-        margin-bottom: 1rem;
-        text-shadow: 1px 1px 2px #aaa;
-    }
-    .sub-header {
-        font-size: 1.8rem;
-        color: #0D47A1;
-        margin-top: 2rem;
-        border-bottom: 2px solid #1E88E5;
-        padding-bottom: 0.5rem;
-    }
-    .result-box {
-        background-color: #E3F2FD;
-        padding: 1rem;
-        border-radius: 10px;
-        border-left: 5px solid #1E88E5;
-        margin: 1rem 0;
-    }
-    .footer {
-        text-align: center;
-        margin-top: 3rem;
-        padding: 1rem;
-        background-color: #E3F2FD;
-        border-radius: 10px;
-    }
-    .stButton button {
-        background-color: #1E88E5;
-        color: white;
-        border-radius: 5px;
-    }
-    .stButton button:hover {
-        background-color: #0D47A1;
-    }
-    .instruction-box {
-        background-color: #F5F5F5;
-        padding: 1rem;
-        border-radius: 10px;
-        border-left: 5px solid #9E9E9E;
-        margin: 1rem 0;
-    }
-    .bmi-scale {
-        display: flex;
-        width: 100%;
-        height: 40px;
-        border-radius: 5px;
-        overflow: hidden;
-        margin: 20px 0;
-    }
-    .bmi-underweight {
-        background-color: #90CAF9;
-        width: 25%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .bmi-normal {
-        background-color: #A5D6A7;
-        width: 25%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .bmi-overweight {
-        background-color: #FFCC80;
-        width: 25%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .bmi-obese {
-        background-color: #EF9A9A;
-        width: 25%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-</style>
-""", unsafe_allow_html=True)
+# ฟังก์ชันสำหรับคำนวณ BMI
+def calculate_bmi(weight, height):
+    """คำนวณค่า BMI จากน้ำหนักและส่วนสูง"""
+    # แปลงส่วนสูงจากเซนติเมตรเป็นเมตร
+    height_m = height / 100
+    bmi = weight / (height_m ** 2)
+    return round(bmi, 2)
 
-# ส่วนหัวของแอป
-st.markdown('<h1 class="main-header">🧮 เครื่องมือคำนวณดัชนีมวลกาย (BMI)</h1>', unsafe_allow_html=True)
-
-# เมนู sidebar
-with st.sidebar:
-    st.title("เกี่ยวกับ BMI")
-    st.markdown("""
-    **BMI (Body Mass Index)** คือดัชนีที่ใช้วัดสัดส่วนรูปร่างของร่างกาย 
-    คำนวณจากน้ำหนักและส่วนสูง ใช้ประเมินภาวะน้ำหนักเกินและอ้วนในผู้ใหญ่
-    
-    **เกณฑ์การประเมิน:**
-    - น้อยกว่า 18.5 = น้ำหนักน้อย / ผอม
-    - 18.5 - 24.9 = น้ำหนักปกติ
-    - 25.0 - 29.9 = น้ำหนักเกิน
-    - 30.0 ขึ้นไป = อ้วน / อ้วนมาก
-    """)
-    
-    # เพิ่มข้อมูลผู้พัฒนา
-    with st.expander("เกี่ยวกับผู้พัฒนา"):
-        st.write("พัฒนาโดย: [ชื่อของคุณ]")
-        st.write("เวอร์ชัน: 1.0.0")
-        st.write("ติดต่อ: your.email@example.com")
-
-# ส่วนหลักของแอป
-st.markdown('<div class="instruction-box">กรุณากรอกน้ำหนักและส่วนสูงของคุณเพื่อคำนวณค่า BMI</div>', unsafe_allow_html=True)
-
-col1, col2 = st.columns(2)
-with col1:
-    น้ำหนัก = st.number_input("น้ำหนัก (กิโลกรัม)", min_value=0.0, max_value=500.0, value=60.0, step=0.1)
-with col2:
-    ส่วนสูง = st.number_input("ส่วนสูง (เซนติเมตร)", min_value=0.0, max_value=250.0, value=170.0, step=0.1)
-
-# ฟังก์ชันคำนวณ BMI
-def คำนวณ_bmi(น้ำหนัก, ส่วนสูง_ซม):
-    ส่วนสูง_เมตร = ส่วนสูง_ซม / 100
-    return น้ำหนัก / (ส่วนสูง_เมตร ** 2)
-
-# ฟังก์ชันแปลผล BMI
-def แปลผล_bmi(bmi):
+# ฟังก์ชันสำหรับหาหมวดหมู่ BMI
+def get_bmi_category(bmi):
+    """ส่งคืนหมวดหมู่ของ BMI และคำแนะนำ"""
     if bmi < 18.5:
-        return "น้ำหนักน้อย / ผอม", "blue", "คุณควรเพิ่มน้ำหนักโดยรับประทานอาหารที่มีประโยชน์เพิ่มขึ้น"
+        return "น้ำหนักน้อย / ผอม", "คุณควรทานอาหารให้เพียงพอและออกกำลังกายเพื่อเพิ่มมวลกล้ามเนื้อ", "#3498db"
+    elif bmi < 23:
+        return "น้ำหนักปกติ / สุขภาพดี", "คุณมีน้ำหนักที่เหมาะสม พยายามรักษาสุขภาพต่อไป", "#2ecc71"
     elif bmi < 25:
-        return "น้ำหนักปกติ", "green", "คุณมีน้ำหนักที่เหมาะสม ควรรักษาสุขภาพให้แข็งแรงต่อไป"
+        return "น้ำหนักเกิน", "คุณควรควบคุมอาหารและออกกำลังกายสม่ำเสมอ", "#f39c12"
     elif bmi < 30:
-        return "น้ำหนักเกิน", "orange", "คุณควรควบคุมอาหารและออกกำลังกายอย่างสม่ำเสมอ"
+        return "อ้วน / โรคอ้วนระดับ 1", "คุณควรปรับเปลี่ยนพฤติกรรมการกินและเพิ่มการออกกำลังกาย", "#e74c3c"
     else:
-        return "อ้วน / อ้วนมาก", "red", "คุณควรปรึกษาแพทย์เพื่อวางแผนลดน้ำหนักอย่างเหมาะสม"
+        return "อ้วนมาก / โรคอ้วนระดับ 2", "คุณควรพบแพทย์เพื่อรับคำแนะนำในการลดน้ำหนักอย่างปลอดภัย", "#c0392b"
 
-# ฟังก์ชันสร้าง QR Code
-def สร้าง_qr_code(url):
+# ฟังก์ชันสำหรับรับ IP Address ของเครื่อง
+def get_local_ip():
+    """รับ IP Address ของเครื่อง"""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except:
+        return "127.0.0.1"
+
+# ฟังก์ชันสำหรับสร้าง QR Code
+def generate_qr_code(data):
+    """สร้าง QR Code จากข้อมูล"""
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    buffered = BytesIO()
+    img.save(buffered)
+    img_str = base64.b64encode(buffered.getvalue()).decode()
+    return img_str
+
+# ฟังก์ชันสำหรับสร้างแผนภูมิ BMI
+def create_bmi_chart():
+    categories = ['น้ำหนักน้อย', 'ปกติ', 'น้ำหนักเกิน', 'อ้วน', 'อ้วนมาก']
+    ranges = ['< 18.5', '18.5-22.9', '23-24.9', '25-29.9', '≥ 30']
+    colors = ['#3498db', '#2ecc71', '#f39c12', '#e74c3c', '#c0392b']
+    
+    fig, ax = plt.subplots(figsize=(10, 2))
+    width = 0.2
+    x = np.arange(len(categories))
+    
+    ax.bar(x, [1, 1, 1, 1, 1], width, color=colors)
+    ax.set_xticks(x)
+    ax.set_xticklabels([f"{cat}\n{rng}" for cat, rng in zip(categories, ranges)])
+    ax.set_yticks([])
+    ax.set_title('เกณฑ์ BMI สำหรับคนเอเชีย')
+    
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    
+    return fig
+
+# ส่วนหัวของเว็บไซต์
+st.title("🏋️ เครื่องคำนวณดัชนีมวลกาย (BMI)")
+st.markdown("**ประเมินสัดส่วนร่างกายของคุณอย่างง่ายดาย**")
+st.write("---")
+
+# สร้างเลย์เอาต์คอลัมน์
+col1, col2 = st.columns([2, 1])
+
+# คอลัมน์ซ้ายสำหรับฟอร์ม
+with col1:
+    st.subheader("กรอกข้อมูลของคุณ")
+    
+    with st.form("bmi_calculator_form"):
+        weight = st.number_input("น้ำหนัก (กิโลกรัม)", min_value=1.0, max_value=300.0, step=0.1)
+        height = st.number_input("ส่วนสูง (เซนติเมตร)", min_value=1.0, max_value=300.0, step=0.1)
+        
+        submitted = st.form_submit_button("คำนวณ BMI")
+
+# คอลัมน์ขวาสำหรับ QR Code
+with col2:
+    st.subheader("แชร์แอพนี้")
+    local_ip = get_local_ip()
+    port = 8501  # Streamlit default port
+    website_url = f"http://{local_ip}:{port}"
+    
+    qr_code = generate_qr_code(website_url)
+    st.markdown(f'<img src="data:image/png;base64,{qr_code}" alt="QR Code" style="width:100%;max-width:200px;">', unsafe_allow_html=True)
+    st.markdown(f"**URL:** [{website_url}]({website_url})")
+
+# แสดงผลลัพธ์ BMI ถ้ามีการส่งฟอร์ม
+if submitted:
+    bmi = calculate_bmi(weight, height)
+    category, advice, color = get_bmi_category(bmi)
+    
+    st.write("---")
+    st.subheader("ผลการคำนวณ")
+    
+    metric_cols = st.columns(2)
+    with metric_cols[0]:
+        st.metric("BMI ของคุณ", f"{bmi}")
+    with metric_cols[1]:
+        st.metric("สถานะ", category)
+    
+    st.markdown(f'<div style="background-color:{color}20;padding:15px;border-radius:5px;border-left:5px solid {color}"><strong>คำแนะนำ:</strong> {advice}</div>', unsafe_allow_html=True)
+
+# แสดงแผนภูมิ BMI
+st.write("---")
+st.subheader("เกณฑ์ BMI สำหรับคนเอเชีย")
+st.pyplot(create_bmi_chart())
+
+# แสดงข้อมูลเพิ่มเติม
+with st.expander("ข้อมูลเพิ่มเติมเกี่ยวกับ BMI"):
+    st.markdown("""
+    **ดัชนีมวลกาย** (Body Mass Index - BMI) เป็นค่าที่คำนวณจากน้ำหนักและส่วนสูง ใช้บ่งชี้ว่า
+    คุณมีน้ำหนักที่เหมาะสมกับส่วนสูงหรือไม่
+    
+    **สูตรคำนวณ BMI:**
+    ```
+    BMI = น้ำหนัก (กิโลกรัม) / (ส่วนสูง (เมตร))²
+    ```
+    
+    **หมายเหตุ:** เกณฑ์ BMI ที่ใช้เป็นเกณฑ์สำหรับคนเอเชีย ซึ่งแตกต่างจากเกณฑ์สากล
+    """)
+
+# ส่วนท้ายของเว็บไซต์
+st.write("---")
+st.caption("แอปคำนวณ BMI พัฒนาด้วย Python และ Streamlit © 2025")
+
+
+def save_qr_code(url, filename="bmi_app_qrcode.png"):
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -155,63 +167,11 @@ def สร้าง_qr_code(url):
     qr.add_data(url)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
-    
-    # แปลงรูปเป็น bytes เพื่อแสดงใน Streamlit
-    buffered = BytesIO()
-    img.save(buffered, format="PNG")
-    return buffered.getvalue()
+    img.save(filename)
+    print(f"QR Code saved to {filename}")
 
-if st.button("คำนวณ BMI"):
-    # ตรวจสอบข้อมูลนำเข้า
-    if น้ำหนัก <= 0 or ส่วนสูง <= 0:
-        st.error("กรุณากรอกน้ำหนักและส่วนสูงที่มากกว่า 0")
-    else:
-        # คำนวณ BMI
-        bmi = คำนวณ_bmi(น้ำหนัก, ส่วนสูง)
-        ผลประเมิน, สี, คำแนะนำ = แปลผล_bmi(bmi)
-        
-        # แสดงผลลัพธ์
-        st.markdown(f'<div class="result-box"><h3>ผลลัพธ์</h3>BMI ของคุณคือ <span style="font-size:1.5rem; font-weight:bold; color:{สี}">{bmi:.2f}</span><br>การประเมิน: <span style="font-size:1.2rem; font-weight:bold; color:{สี}">{ผลประเมิน}</span><br><br>{คำแนะนำ}</div>', unsafe_allow_html=True)
-        
-        # แสดงแถบสเกล BMI แบบ HTML/CSS แทนการใช้ matplotlib
-        st.markdown("""
-        <div class="bmi-scale">
-            <div class="bmi-underweight">น้ำหนักน้อย<br>&lt;18.5</div>
-            <div class="bmi-normal">ปกติ<br>18.5-24.9</div>
-            <div class="bmi-overweight">น้ำหนักเกิน<br>25-29.9</div>
-            <div class="bmi-obese">อ้วน<br>&gt;30</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # แสดงตำแหน่ง BMI ของผู้ใช้บนสเกล
-        bmi_position = min(max((bmi - 10) / 30 * 100, 0), 100)  # แปลง BMI เป็นเปอร์เซ็นต์ของสเกล (10-40)
-        st.markdown(f"""
-        <div style="width:100%; padding:5px 0;">
-            <div style="width:5px; height:20px; background-color:red; position:relative; left:{bmi_position}%;"></div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # คำนวณน้ำหนักที่เหมาะสม
-        ส่วนสูง_เมตร = ส่วนสูง / 100
-        น้ำหนักต่ำสุด = 18.5 * (ส่วนสูง_เมตร ** 2)
-        น้ำหนักสูงสุด = 24.9 * (ส่วนสูง_เมตร ** 2)
-        
-        st.markdown(f'<div class="instruction-box"><h4>น้ำหนักที่เหมาะสมสำหรับส่วนสูง {ส่วนสูง} ซม.</h4>น้ำหนักที่เหมาะสมควรอยู่ระหว่าง {น้ำหนักต่ำสุด:.1f} - {น้ำหนักสูงสุด:.1f} กิโลกรัม</div>', unsafe_allow_html=True)
-        
-        # สร้าง QR Code สำหรับแชร์
-        st.markdown('<h3 class="sub-header">แชร์แอปพลิเคชันนี้</h3>', unsafe_allow_html=True)
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            # จำลองการสร้าง URL สำหรับแชร์
-            # ในการใช้งานจริง นี่ควรเป็น URL ของแอปที่เผยแพร่แล้ว
-            demo_url = "https://yourusername-bmi-calculator-streamlit-app.streamlit.app"
-            st.markdown(f"สแกน QR Code เพื่อเข้าถึงแอปพลิเคชัน\n\nURL: `{demo_url}`")
-        
-        with col2:
-            # สร้าง QR Code สำหรับแชร์
-            qr_image = สร้าง_qr_code(demo_url)
-            st.image(qr_image, width=200)
-
-# ส่วนท้ายของแอป
-st.markdown('<div class="footer">© 2025 BMI Calculator App. All rights reserved.</div>', unsafe_allow_html=True)
+# ใส่ IP Address ของคุณที่นี่
+local_ip = "192.168.1.37"  # เปลี่ยนเป็น IP จริงของคุณ
+port = 8501
+url = f"http://{local_ip}:{port}"
+save_qr_code(url)
